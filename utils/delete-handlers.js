@@ -29,11 +29,10 @@ async function deleteUser(req, res) {
     await User.init();
     await Task.init();
 
-    const deletedUser = await User.db.transaction(async session => {
+    await User.db.transaction(async session => {
       const user = await User.findById(req.params.id).session(session);
       if (!user) throw notFound('User');
 
-      const data = user.toObject();
       // Completed tasks are absent from pendingTasks, so query by assignedUser.
       await Task.updateMany(
         { assignedUser: user._id.toString() },
@@ -42,10 +41,9 @@ async function deleteUser(req, res) {
       );
       await User.deleteOne({ _id: user._id }, { session });
 
-      return data;
     });
 
-    return res.status(200).json({ message: 'User deleted.', data: deletedUser });
+    return res.status(204).end();
   } catch (err) {
     return handleError(res, err, 'user');
   }
@@ -58,11 +56,10 @@ async function deleteTask(req, res) {
     await User.init();
     await Task.init();
 
-    const deletedTask = await Task.db.transaction(async session => {
+    await Task.db.transaction(async session => {
       const task = await Task.findById(req.params.id).session(session);
       if (!task) throw notFound('Task');
 
-      const data = task.toObject();
       const taskId = task._id.toString();
       await User.updateMany(
         { pendingTasks: taskId },
@@ -71,10 +68,9 @@ async function deleteTask(req, res) {
       );
       await Task.deleteOne({ _id: task._id }, { session });
 
-      return data;
     });
 
-    return res.status(200).json({ message: 'Task deleted.', data: deletedTask });
+    return res.status(204).end();
   } catch (err) {
     return handleError(res, err, 'task');
   }

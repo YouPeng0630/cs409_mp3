@@ -22,6 +22,13 @@ async function request(method, path, body, expectedStatus = 200) {
   }
 
   const text = await response.text();
+  if (expectedStatus === 204) {
+    assert.equal(response.status, 204,
+      `${method} ${path}: expected HTTP 204, got ${response.status}: ${text.slice(0, 200)}`);
+    assert.equal(text, '', `${method} ${path}: HTTP 204 must have an empty response body`);
+    return;
+  }
+
   let json;
   try { json = JSON.parse(text); } catch {
     throw new Error(`${method} ${path}: HTTP ${response.status} did not return JSON: ${text.slice(0, 200)}`);
@@ -72,9 +79,8 @@ async function deleteOwned(collection, index, uppercase = false) {
   assert.ok(record && /^[a-f0-9]{24}$/.test(record._id), 'Cleanup target must be an owned fixture ID');
   const before = await read(collection, index);
   const id = uppercase ? record._id.toUpperCase() : record._id;
-  const deleted = await request('DELETE', path(collection, id));
-  assert.deepEqual(deleted, before, 'DELETE data must contain the resource before deletion');
-  return deleted;
+  await request('DELETE', path(collection, id), undefined, 204);
+  return before;
 }
 
 async function rejectedDelete(collection, id) {
